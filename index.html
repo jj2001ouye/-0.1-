@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>90项心理健康筛查专业版</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://dl.ifanr666.com/sdk/sdk-web-latest.js"></script>
+</head>
+<body>
+    <div id="app" class="container">
+        <div id="welcome-screen">
+            <div class="brand-tag">心理实验室</div>
+            <h1>90项心理健康筛查</h1>
+            <p class="subtitle"临床常用 90题标准版 | 自我状态深度画像</p>
+            <div class="auth-box" style="margin-top: 40px;">
+                <input type="text" id="token-input" placeholder="请输入测评码">
+                <button class="main-btn" onclick="startQuiz()">开启测评</button>
+            </div>
+            <div id="resume-tip" style="display:none; margin-top:20px; color:#7BBAB1; font-size:13px; cursor:pointer;" onclick="resumeProgress()">
+                检测到上次未完成进度，点击此处继续 >
+            </div>
+        </div>
+
+        <div id="quiz-screen" style="display:none;">
+            <div class="progress-container"><div id="progress-bar"></div></div>
+            <div class="q-header">
+                <span id="q-count">01/90</span>
+                <span class="restart-btn" onclick="restartQuiz()">放弃并重新开始</span>
+            </div>
+            <div id="question-text" class="q-card">正在加载题目...</div>
+            <div class="options-group">
+                <button class="opt-btn" onclick="handleAnswer(0)">从无 (0)</button>
+                <button class="opt-btn" onclick="handleAnswer(1)">很轻 (1)</button>
+                <button class="opt-btn" onclick="handleAnswer(2)">中度 (2)</button>
+                <button class="opt-btn" onclick="handleAnswer(3)">偏重 (3)</button>
+                <button class="opt-btn" onclick="handleAnswer(4)">严重 (4)</button>
+            </div>
+        </div>
+
+        <div id="result-screen" style="display:none;">
+            <div id="poster-area">
+                <div class="poster-inner">
+                    <div style="background:#fff3f3; padding:12px; border-left:4px solid #e74c3c; margin-bottom:20px; font-size:13px; color:#e74c3c;">
+                        ⚠️ 本报告仅为心理健康筛查参考工具，结果不作为任何医学诊断依据。如有困扰请尽快寻求专业帮助。
+                    </div>
+                    <div class="brand-tag">心灵评估报告</div>
+                    <h2 class="poster-title">90题心理能量画像</h2>
+
+                    <div class="norm-comparison">
+                        <div class="comparison-header">
+                            <span>总分压力水平对比</span>
+                            <span id="score-tag" class="tag-normal">正常</span>
+                        </div>
+                        <div class="meter-bar">
+                            <div id="score-pointer" class="pointer"></div>
+                            <div class="zone healthy"></div>
+                            <div class="zone warning"></div>
+                            <div class="zone danger"></div>
+                        </div>
+                        <div class="meter-labels" style="display:flex; justify-content:space-between; font-size:10px; color:#999; margin-top:5px;">
+                            <span>0</span><span>160(常模)</span><span>360</span>
+                        </div>
+                    </div>
+
+                    <div class="score-grid" id="score-container"></div>
+                    <div id="result-chart" style="width:100%; height:300px;"></div>
+
+                    <div class="detail-list-section">
+                        <h4 class="section-title">📌 各维度得分明细</h4>
+                        <div id="factor-detail-list"></div>
+                    </div>
+
+                    <div class="prescription-card">
+                        <div class="prescription-title">💊 自我调节参考建议</div>
+                        <ul class="prescription-list" id="prescription-list"></ul>
+                        <div class="prescription-footer">—— 心灵实验室 · 建议 ——</div>
+                    </div>
+
+                    <div class="disclaimer-box">
+                        <p><strong>⚠️ 重要声明：</strong></p>
+                        <p>1. 本工具仅为自我筛查参考工具，不构成任何医学诊断或治疗建议。</p>
+                        <p>2. 结果仅反映您近一周的主观感受，受个人状态、环境影响可能波动。</p>
+                        <p>3. 如有不适，请及时咨询专业心理咨询师或精神科医师。</p>
+                        <p>4. 我们严格遵守《个人信息保护法》，所有数据加密存储，仅用于生成报告。</p>
+                        <p>5. 未经您明确同意，绝不用于任何商业用途或第三方分享。</p>
+                    </div>
+
+                    <div class="poster-footer">
+                        <p>报告编号：<span id="report-id">--</span></p>
+                        <p>测评时间：<span id="report-date">--</span></p>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 20px;">
+                <button class="main-btn" onclick="savePoster()">保存高清报告海报</button>
+                <button class="main-btn secondary" onclick="location.reload()">重新测评</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="questions.js"></script>
+    <script>
+
+    let currentIdx = 0;
+    let answers = [];
+    let activeToken = "";
+
+    // 1. 初始化与自动校验
+    window.onload = async () => {
+        // 【必须修改】替换为您的真实 ClientID
+        BaaS.init('c59dcfb2384b4bc95ff0'); 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        if (tokenFromUrl) {
+            document.getElementById('token-input').value = tokenFromUrl;
+            verifyAndStart(tokenFromUrl);
+        }
+
+        if(localStorage.getItem('scl90_progress')) {
+            document.getElementById('resume-tip').style.display = 'block';
+        }
+    };
+
+    // 2. 核心校验逻辑
+    async function verifyAndStart(tk) {
+        const startBtn = document.querySelector('.main-btn');
+        const originalText = startBtn.innerText;
+        startBtn.innerText = "校验中...";
+        startBtn.disabled = true;
+
+        try {
+            // 【必须修改】替换为您的真实数据表 ID（数字）
+            let MyTable = new BaaS.TableObject('698ac4cc11cd21804fa3c3c1'); 
+            let query = new BaaS.Query();
+            query.compare('token_string', '=', tk);
+            query.compare('is_used', '=', false);
+
+            let res = await MyTable.setQuery(query).find();
+
+            if (res.data.objects && res.data.objects.length > 0) {
+                activeToken = tk;
+                setTimeout(() => { initQuiz(); }, 500);
+            } else {
+                alert("该测评链接已失效或测评码错误");
+                startBtn.innerText = originalText;
+                startBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("网络连接失败，请检查网络后重试");
+            startBtn.disabled = false;
+            startBtn.innerText = originalText;
+        }
+    }
+
+    // 绑定给按钮的函数
+    function startQuiz() {
+        const tk = document.getElementById('token-input').value.trim();
+        if(!tk) return alert("请输入测评码");
+        
+        if (!confirm("本测评会收集您的作答数据用于生成报告。是否同意？")) return;
+        verifyAndStart(tk);
+    }
+
+    // 3. 结果渲染与自动核销
+    async function renderResult() {
+        // --- 核心核销逻辑：放在函数最开始 ---
+        if (activeToken) {
+            try {
+                let MyTable = new BaaS.TableObject('您的数据表ID'); 
+                let query = new BaaS.Query();
+                query.compare('token_string', '=', activeToken);
+                let res = await MyTable.setQuery(query).find();
+                
+                if (res.data.objects && res.data.objects.length > 0) {
+                    let recordId = res.data.objects[0]._id;
+                    let record = MyTable.getWithoutData(recordId);
+                    record.set('is_used', true); 
+                    await record.update();
+                    console.log("Token已成功核销");
+                }
+            } catch (e) {
+                console.warn("Token核销失败:", e);
+            }
+        }
+
+        // 清除进度并切换屏幕
+        localStorage.removeItem('scl90_progress');
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+
+        // ... 计算总分 ...
+        const totalScore = answers.reduce((sum, a) => sum + (a.score || 0), 0);
+        const totalAvg = (totalScore / 90).toFixed(2);
+        const positiveItems = answers.filter(a => a.score >= 1).length;
+        const psdi = positiveItems > 0 ? (totalScore / positiveItems).toFixed(2) : 0;
+
+        // ... 更新UI与刻度尺 (保持您原有的代码即可) ...
+        updateUI(totalScore, totalAvg, positiveItems, psdi);
+    }
+
+        function resumeProgress() {
+            const saved = JSON.parse(localStorage.getItem('scl90_progress'));
+            if(saved) { 
+                activeToken = saved.token; 
+                answers = saved.answers || []; 
+                currentIdx = saved.currentIdx || 0; 
+                initQuiz(); 
+            }
+        }
+
+        function initQuiz() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (typeof questions === 'undefined') return alert("题目数据未加载，请检查 questions.js");
+            const q = questions[currentIdx];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('q-count').innerText = `${String(currentIdx+1).padStart(2,'0')}/90`;
+            document.getElementById('progress-bar').style.width = ((currentIdx+1)/90*100) + '%';
+        }
+
+        function handleAnswer(score) {
+            answers[currentIdx] = { id: questions[currentIdx].id, score: score, dim: questions[currentIdx].dim };
+            localStorage.setItem('scl90_progress', JSON.stringify({ 
+                token: activeToken, 
+                answers: answers, 
+                currentIdx: currentIdx + 1 
+            }));
+            
+            if(currentIdx < 89) { 
+                currentIdx++; 
+                showQuestion(); 
+            } else { 
+                renderResult(); 
+            }
+        }
+
+        // 1. 注意这里加了 async
+        async function renderResult() {
+            // --- 新增：核销 Token 确保单次有效 ---
+            if (activeToken) {
+                try {
+                    // 请确保这里的数字 ID 与 window.onload 里的保持一致
+                    let MyTable = new BaaS.TableObject('你的数据表ID'); 
+                    let query = new BaaS.Query();
+                    query.compare('token_string', '=', activeToken);
+                    let res = await MyTable.setQuery(query).find();
+                    
+                    if (res.data.objects && res.data.objects.length > 0) {
+                        let recordId = res.data.objects[0]._id;
+                        let record = MyTable.getWithoutData(recordId);
+                        record.set('is_used', true); // 核心：标记为已使用
+                        await record.update();
+                        console.log("Token 已核销");
+                    }
+                } catch (e) {
+                    console.warn("Token 核销失败，但不影响结果展示:", e);
+                }
+            }
+
+        function renderResult() {
+            localStorage.removeItem('scl90_progress');
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+
+            const totalScore = answers.reduce((sum, a) => sum + (a.score || 0), 0);
+            const totalAvg = (totalScore / 90).toFixed(2);
+            const positiveItems = answers.filter(a => a.score >= 1).length;
+            const psdi = positiveItems > 0 ? (totalScore / positiveItems).toFixed(2) : 0;
+
+            // 更新刻度尺
+            const pointerPos = Math.min((totalScore / 360) * 100, 100);
+            document.getElementById('score-pointer').style.left = pointerPos + '%';
+            const scoreTag = document.getElementById('score-tag');
+            scoreTag.innerText = totalScore > 160 ? "阳性预警" : "健康状态";
+            scoreTag.className = totalScore > 160 ? "tag-danger" : "tag-normal";
+
+            let factorListHtml = "";
+            let maxDim = "焦虑"; 
+            let topScore = -1;
+            const radarData = [];
+            const radarIndicators = [];
+            const dimNames = ["躯体化", "强迫症状", "人际敏感", "抑郁", "焦虑", "敌对", "恐怖", "偏执", "精神病性"];
+            
+            dimNames.forEach(dim => {
+                const dimAns = answers.filter(a => a.dim === dim);
+                const factorScore = dimAns.length > 0 ? (dimAns.reduce((s, a) => s + a.score, 0) / dimAns.length).toFixed(2) : "0.00";
+                radarData.push(factorScore);
+                radarIndicators.push({ name: dim, max: 4 });
+
+                if(parseFloat(factorScore) > topScore) {
+                    topScore = parseFloat(factorScore);
+                    maxDim = dim;
+                }
+
+                let statusClass = factorScore < 2 ? "status-low" : (factorScore < 3 ? "status-mid" : "status-high");
+                let statusText = factorScore < 2 ? "正常" : (factorScore < 3 ? "轻度" : "显著");
+
+                factorListHtml += `
+                    <div class="factor-row">
+                        <div class="factor-info"><span class="factor-name">${dim}</span><span class="factor-value">${factorScore}</span></div>
+                        <div class="factor-progress-bg"><div class="factor-progress-fill ${statusClass}" style="width: ${factorScore/4*100}%"></div></div>
+                        <span class="factor-status-text ${statusClass}">${statusText}</span>
+                    </div>`;
+            });
+
+            // 填充建议列表
+            const pList = document.getElementById('prescription-list');
+            if(pList && typeof prescriptionLib !== 'undefined') {
+                const advices = prescriptionLib[maxDim] || ["保持规律作息", "保持心态平和"];
+                pList.innerHTML = advices.map(text => `<li>${text}</li>`).join('');
+            }
+
+            document.getElementById('score-container').innerHTML = `
+                <div class="score-item"><span>总得分</span><strong>${totalScore}</strong></div>
+                <div class="score-item"><span>均分</span><strong>${totalAvg}</strong></div>
+                <div class="score-item"><span>阳性项数</span><strong>${positiveItems}</strong></div>
+                <div class="score-item"><span>痛苦指数</span><strong>${psdi}</strong></div>`;
+
+            document.getElementById('factor-detail-list').innerHTML = factorListHtml;
+            initChart(radarIndicators, radarData);
+        }
+
+        function initChart(indicators, data) {
+            const chart = echarts.init(document.getElementById('result-chart'));
+            chart.setOption({
+                animation: false, // 必须关闭动画，否则截图时可能只有底图没有数据线
+                radar: { 
+                    indicator: indicators, 
+                    shape: 'polygon', 
+                    splitNumber: 4, 
+                    axisName: { color: '#7BBAB1', fontSize: 10 } 
+                },
+                series: [{ 
+                    type: 'radar', 
+                    data: [{ 
+                        value: data, 
+                        areaStyle: { color: 'rgba(123, 186, 177, 0.4)' }, 
+                        lineStyle: { color: '#7BBAB1', width: 2 } 
+                    }] 
+                }]
+            });
+        }
+
+        function savePoster() {
+            const posterArea = document.querySelector("#poster-area");
+            if (!posterArea) {
+                alert("报告区域未加载，请先完成测评");
+                return;
+            }
+
+            // 正确选择保存按钮
+            const saveBtn = document.querySelector('button[onclick="savePoster()"]');
+            if (!saveBtn) {
+                alert("操作异常，请刷新重试");
+                return;
+            }
+
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "正在优化生成...";
+            saveBtn.disabled = true;
+
+            try {
+                // 安全设置编号和日期
+                const reportIdEl = document.getElementById('report-id');
+                if (reportIdEl) reportIdEl.innerText = 'PSY-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+                const reportDateEl = document.getElementById('report-date');
+                if (reportDateEl) {
+                    reportDateEl.innerText = new Date().toLocaleDateString('zh-CN', {
+                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                }
+
+                // 动态 scale：移动端降低到2~2.5，避免模糊+体积爆炸
+                const isMobile = window.innerWidth <= 768;
+                const scale = isMobile ? 2.5 : 3;
+
+                const options = {
+                    scale: scale,
+                    useCORS: true,
+                    backgroundColor: "#FFFFFF",
+                    logging: false,
+                    allowTaint: true,
+                    windowWidth: posterArea.scrollWidth,
+                    windowHeight: posterArea.scrollHeight,
+                    // 关键：提升图像平滑度
+                    imageTimeout: 15000,
+                    removeContainer: true
+                };
+
+                html2canvas(posterArea, options).then(canvas => {
+                    // 限制最大宽度（防止超大图）
+                    let finalCanvas = canvas;
+                    if (canvas.width > 1200) {
+                        const ratio = 1200 / canvas.width;
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = 1200;
+                        tempCanvas.height = canvas.height * ratio;
+                        const ctx = tempCanvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                        finalCanvas = tempCanvas;
+                    }
+
+                    // 转 JPEG + 质量压缩（体积大幅减小，清晰度损失极小）
+                    const imgData = finalCanvas.toDataURL('image/jpeg', 0.85);  // 0.85 是平衡点，0.7~0.9 都可调
+
+                    // 创建预览层
+                    const overlay = document.createElement('div');
+                    overlay.className = 'poster-overlay';
+                    overlay.innerHTML = `
+                        <img src="${imgData}" alt="报告海报" style="max-width:90%; max-height:80vh; object-fit:contain;">
+                        <div class="tips">↑ 长按图片保存到相册（已优化体积，更清晰） ↑</div>
+                        <button onclick="this.parentElement.remove()" style="margin-top:20px; background:none; border:1px solid rgba(255,255,255,0.5); color:#fff; padding:10px 30px; border-radius:30px; font-size:16px;">关闭</button>
+                    `;
+                    document.body.appendChild(overlay);
+
+                    // 恢复按钮
+                    saveBtn.innerText = originalText;
+                    saveBtn.disabled = false;
+                }).catch(err => {
+                    console.error("生成失败:", err);
+                    alert("生成图片失败，请尝试直接截屏保存");
+                    saveBtn.innerText = originalText;
+                    saveBtn.disabled = false;
+                });
+            } catch (err) {
+                console.error("savePoster 异常:", err);
+                alert("操作出错，请刷新重试");
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        function clearProgress() { localStorage.removeItem('scl90_progress'); answers = []; currentIdx = 0; }
+        function restartQuiz() { if(confirm("确定重新开始吗？")) { clearProgress(); location.reload(); } }
+    </script>
+</body>
+</html>

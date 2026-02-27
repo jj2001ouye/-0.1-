@@ -1,0 +1,291 @@
+/* 核心变量与全局重置 */
+:root { 
+    --primary: #7BBAB1; 
+    --bg: #F4F7F6; 
+    --dark: #2C3E50; 
+    --border: #E8EEED; 
+    --danger: #E74C3C;
+    --warning: #F1C40F;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body { 
+    background: var(--bg); 
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; 
+    margin: 0; 
+    display: flex; 
+    justify-content: center; 
+    min-height: 100vh; 
+}
+
+.container { 
+    background: white; 
+    width: 100%; 
+    max-width: 480px; 
+    min-height: 100vh; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.05); 
+    padding-bottom: 30px; 
+    display: flex;
+    flex-direction: column;
+}
+
+/* 欢迎页与认证 */
+#welcome-screen { padding: 80px 30px; text-align: center; }
+.brand-tag { background: #eef7f6; color: var(--primary); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: bold; display: inline-block; }
+h1 { color: var(--dark); margin: 20px 0 10px; font-size: 24px; }
+.subtitle { color: #999; font-size: 14px; margin-bottom: 40px; }
+
+#token-input { 
+    width: 100%; 
+    padding: 15px; 
+    border: 1.5px solid var(--border); 
+    border-radius: 12px; 
+    margin-bottom: 15px; 
+    outline: none; 
+    transition: 0.3s; 
+    text-align: center;
+    font-size: 16px;
+}
+#token-input:focus { border-color: var(--primary); }
+
+.main-btn { 
+    width: 100%; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 16px; 
+    border-radius: 12px; 
+    font-size: 16px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    transition: 0.2s;
+}
+.main-btn:active { transform: scale(0.98); opacity: 0.9; }
+.main-btn.secondary { background: #f4f4f4; color: #666; margin-top: 10px; }
+
+/* 答题界面 */
+#quiz-screen { padding: 30px; }
+.progress-container { background: #eee; height: 6px; border-radius: 3px; margin-bottom: 25px; overflow: hidden; }
+#progress-bar { 
+    background: var(--primary); 
+    height: 100%; 
+    width: 0%; 
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+    box-shadow: 0 0 10px rgba(123, 186, 177, 0.5);
+}
+.q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: #999; font-size: 13px; }
+.restart-btn { cursor: pointer; text-decoration: underline; }
+
+.q-card { 
+    font-size: 19px; 
+    color: var(--dark); 
+    line-height: 1.6; 
+    min-height: 120px; 
+    font-weight: 500; 
+    animation: fadeInRight 0.4s ease-out; 
+}
+
+.options-group { display: flex; flex-direction: column; gap: 12px; margin-top: 40px; }
+.opt-btn { 
+    background: white; 
+    border: 1.5px solid var(--border); 
+    padding: 16px; 
+    border-radius: 12px; 
+    font-size: 15px; 
+    text-align: left; 
+    transition: 0.2s; 
+    outline: none;
+}
+.opt-btn:active { 
+    background: var(--primary) !important; 
+    color: white !important; 
+    border-color: var(--primary); 
+    transform: scale(0.95); 
+}
+
+/* 结果海报区域 */
+/* 针对海报区域的商业化加固 */
+#poster-area {
+    background: #ffffff;
+    position: relative;
+    overflow: hidden; /* 防止内容溢出导致截图黑边 */
+}
+
+/* 加强免责水印 */
+.poster-inner::before {
+    content: "仅供参考 · 非诊断依据";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 60px;
+    color: rgba(231, 76, 60, 0.08);
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 1;
+}
+/* 增加一个专属的水印或品牌印记 */
+#poster-area::after {
+    content: "由心理实验室提供技术支持 · 仅供参考";
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    font-size: 10px;
+    color: #BDC3C7;
+    letter-spacing: 1px;
+}
+
+.poster-inner { 
+    padding: 30px 25px; 
+    background: white; 
+    position: relative; 
+    border: 1px solid #eee; 
+    min-height: 1000px; /* 确保长图导出完整 */
+}
+
+.poster-watermark { 
+    position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%, -50%) rotate(-30deg); 
+    font-size: 80px; font-weight: 900; 
+    color: rgba(123, 186, 177, 0.03); 
+    white-space: nowrap; pointer-events: none; 
+}
+
+.poster-title { font-size: 22px; color: var(--dark); text-align: center; margin: 15px 0 25px; letter-spacing: 2px; }
+
+/* 常模对比刻度尺 */
+.norm-comparison { margin: 20px 0; background: #f9f9f9; padding: 15px; border-radius: 10px; }
+.comparison-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; }
+.meter-bar { height: 8px; background: #eee; border-radius: 4px; position: relative; display: flex; margin: 15px 0 5px; }
+.zone { height: 100%; }
+.healthy { width: 44.4%; background: var(--primary); border-radius: 4px 0 0 4px; }
+.warning { width: 20%; background: var(--warning); }
+.danger { width: 35.6%; background: var(--danger); border-radius: 0 4px 4px 0; }
+.pointer { width: 2px; height: 16px; background: #333; position: absolute; top: -4px; transition: left 0.5s; z-index: 2; }
+.pointer::after { content: '▼'; position: absolute; top: -12px; left: -5px; font-size: 10px; }
+
+/* 数据网格 */
+.score-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 10px 0; }
+.score-item { border: 1.5px solid var(--border); background: #fff; padding: 15px; text-align: center; border-radius: 10px; }
+.score-item span { font-size: 11px; color: #999; display: block; margin-bottom: 5px; }
+.score-item strong { font-size: 18px; color: var(--primary); }
+
+/* 因子明细列表 */
+.detail-list-section { margin-top: 25px; text-align: left; }
+.section-title { border-left: 3px solid var(--primary); padding-left: 8px; margin: 25px 0 15px; font-size: 16px; color: var(--dark); }
+.factor-row { display: flex; align-items: center; margin-bottom: 12px; font-size: 13px; }
+.factor-info { width: 80px; display: flex; flex-direction: column; }
+.factor-name { color: #333; font-weight: bold; }
+.factor-value { color: #999; font-size: 11px; }
+.factor-progress-bg { flex: 1; height: 6px; background: #eee; border-radius: 3px; margin: 0 10px; position: relative; }
+.factor-progress-fill { height: 100%; border-radius: 3px; }
+.status-low { background: var(--primary); color: var(--primary); }
+.status-mid { background: var(--warning); color: var(--warning); }
+.status-high { background: var(--danger); color: var(--danger); }
+.factor-status-text { width: 40px; font-size: 11px; font-weight: bold; text-align: right; }
+
+/* 深度解析与因子详情 */
+.analysis-section { margin-top: 25px; text-align: left; }
+.main-status { font-weight: bold; color: var(--primary); margin-bottom: 15px; font-size: 15px; }
+.factor-detail-item { background: #fdfdfd; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+.factor-detail-item strong { color: var(--dark); font-size: 14px; display: block; margin-bottom: 5px; }
+.factor-detail-item p { font-size: 12px; color: #666; margin: 0; line-height: 1.6; }
+
+/* 处方单 */
+.prescription-card {
+    background: #fdfdfd;
+    border-left: 4px solid var(--primary);
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.03);
+    margin-top: 20px;
+    padding: 20px;
+    position: relative;
+}
+.prescription-card::before {
+    content: "Rx"; position: absolute; top: -5px; right: 15px;
+    font-size: 50px; color: rgba(123, 186, 177, 0.08); font-family: serif; font-style: italic;
+}
+.prescription-title { font-weight: bold; color: var(--dark); margin-bottom: 15px; font-size: 15px; }
+.prescription-list { margin: 0; padding-left: 18px; color: #555; font-size: 13px; line-height: 1.7; }
+
+/* 页脚与免责声明 */
+.disclaimer-box {
+    margin-top: 30px; padding: 15px; background: #f8f8f8; border-radius: 8px;
+    font-size: 10px; color: #aaa; line-height: 1.6;
+}
+.poster-footer {
+    margin-top: 25px; padding-top: 20px; border-top: 1px solid #f0f0f0;
+    display: flex; justify-content: space-between; font-size: 10px; color: #bbb;
+}
+
+/* 动画 */
+@keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* 移动端优化 */
+@media (max-width: 380px) {
+    .score-item strong { font-size: 14px; }
+    .q-card { font-size: 17px; }
+}
+
+/* 海报专用容器优化 */
+/* 确保海报容器有纯白背景，避免透明黑边 */
+#poster-area {
+    background-color: #ffffff !important;
+    padding: 20px;
+    border-radius: 0; /* 截图时建议直角，防止边缘杂色 */
+}
+
+/* 遮罩层样式 */
+.poster-mask {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.poster-mask img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.poster-mask p {
+    color: white;
+    margin-top: 15px;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+
+/* 遮罩层交互样式：引导用户长按保存 */
+.poster-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.poster-overlay img {
+    width: 85%;
+    max-height: 75vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    border: 4px solid #fff;
+}
+.poster-overlay .tips {
+    color: #fff;
+    margin-top: 20px;
+    font-size: 15px;
+    background: rgba(255,255,255,0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+}
